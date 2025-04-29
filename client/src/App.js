@@ -1,17 +1,35 @@
 import './App.css';
-import Post from "./Post";
-import Header from "./Header";
-import {Route, Routes} from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { Route, Routes } from "react-router-dom";
 import Layout from "./Layout";
 import IndexPage from "./pages/IndexPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import {UserContextProvider} from "./UserContext";
 import CreatePost from "./pages/CreatePost";
 import PostPage from "./pages/PostPage";
 import EditPost from "./pages/EditPost";
+import { UserContextProvider } from "./UserContext";
 
 function App() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2000); // 2 seconds splash screen
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="splash-screen">
+        <h1>Welcome to My Blog</h1>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <UserContextProvider>
       <Routes>

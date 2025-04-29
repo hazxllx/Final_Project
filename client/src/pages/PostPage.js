@@ -1,43 +1,140 @@
-import {useContext, useEffect, useState} from "react";
-import {useParams} from "react-router-dom";
-import {formatISO9075} from "date-fns";
-import {UserContext} from "../UserContext";
-import {Link} from 'react-router-dom';
+import { useContext, useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { formatISO9075 } from "date-fns";
+import { UserContext } from "../UserContext";
 
 export default function PostPage() {
-  const [postInfo,setPostInfo] = useState(null);
-  const {userInfo} = useContext(UserContext);
-  const {id} = useParams();
-  useEffect(() => {
-    fetch(`http://localhost:4000/post/${id}`)
-      .then(response => {
-        response.json().then(postInfo => {
-          setPostInfo(postInfo);
-        });
-      });
-  }, []);
+  const [postInfo, setPostInfo] = useState(null);
+  const [bookmarked, setBookmarked] = useState(false);
+  const { userInfo } = useContext(UserContext);
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-  if (!postInfo) return '';
+  useEffect(() => {
+    fetch(`http://localhost:4000/post/${id}`, {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setPostInfo(data);
+        if (userInfo?.bookmarks?.includes(data._id)) {
+          setBookmarked(true);
+        }
+      })
+      .catch((err) => console.error("Error fetching post:", err));
+  }, [id, userInfo]);
+
+  if (!postInfo || !postInfo.author) return <div>Loading...</div>;
+
+  const isAuthor = userInfo?.id === postInfo.author._id;
+
+  const handleDelete = () => {
+    fetch(`http://localhost:4000/post/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.ok) {
+          alert("Post deleted successfully");
+          navigate("/");
+        } else {
+          alert("Failed to delete post");
+        }
+      })
+      .catch((err) => console.error("Error deleting post:", err));
+  };
+
+  const handleBookmark = () => {
+    fetch(`http://localhost:4000/bookmark/${postInfo._id}`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.ok) {
+          setBookmarked((prev) => !prev);
+        } else {
+          alert("Failed to update bookmark");
+        }
+      })
+      .catch(() => alert("Bookmark action failed"));
+  };
 
   return (
     <div className="post-page">
-      <h1>{postInfo.title}</h1>
+      <div
+        className="post-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <h1 style={{ textAlign: "center", flex: 1 }}>{postInfo.title}</h1>
+        <div style={{ display: "flex", gap: "10px" }}>
+          {userInfo?.id && (
+            <button
+              onClick={handleBookmark}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+              title="Bookmark"
+            >
+              <img
+                src={
+                  bookmarked
+                    ? "https://cdn-icons-png.flaticon.com/512/1828/1828884.png"
+                    : "https://cdn-icons-png.flaticon.com/512/1216/1216762.png"
+                }
+                alt="Bookmark"
+                width={24}
+              />
+            </button>
+          )}
+
+          {isAuthor && (
+            <button
+              onClick={handleDelete}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+              title="Delete Post"
+            >
+              <img
+                src="https://cdn-icons-png.flaticon.com/512/6861/6861362.png"
+                alt="Delete"
+                width={24}
+              />
+            </button>
+          )}
+        </div>
+      </div>
+
       <time>{formatISO9075(new Date(postInfo.createdAt))}</time>
       <div className="author">by @{postInfo.author.username}</div>
-      {userInfo.id === postInfo.author._id && (
+
+      {isAuthor && (
         <div className="edit-row">
           <Link className="edit-btn" to={`/edit/${postInfo._id}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-            </svg>
             Edit this post
           </Link>
         </div>
       )}
+
       <div className="image">
-        <img src={`http://localhost:4000/${postInfo.cover}`} alt=""/>
+        <img
+          src={`http://localhost:4000/${postInfo.cover}`}
+          alt="Post cover"
+        />
       </div>
-      <div className="content" dangerouslySetInnerHTML={{__html:postInfo.content}} />
+
+      <div
+        className="content"
+        dangerouslySetInnerHTML={{ __html: postInfo.content }}
+      />
     </div>
   );
 }

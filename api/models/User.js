@@ -1,28 +1,33 @@
-// Import Mongoose to work with MongoDB
+// Import mongoose library
 const mongoose = require('mongoose');
 
-// Get Schema and model from mongoose
+// Destructure Schema and model from mongoose
 const { Schema, model } = mongoose;
 
-// Define the schema for a "User" document
+// Define the structure of the User document
 const UserSchema = new Schema({
-  // Username must be a string, is required, must be at least 4 characters, and must be unique
+  // Username must be a unique string, at least 4 characters long
   username: {
     type: String,
     required: true,
     min: 4,
-    unique: true, // Prevents duplicate usernames
+    unique: true,
   },
-
-  // Password is required; this will usually be a hashed password
+  // Password is required (should be hashed before saving)
   password: {
     type: String,
     required: true,
   },
+  // Bookmarks is an array of Post IDs (references to the Post model)
+  bookmarks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post',
+    default: [],
+  }],
 });
 
-// Create a model named 'User' using the UserSchema
+// Create the User model from the schema
 const UserModel = model('User', UserSchema);
 
-// Export the model to be used in other parts of the application
+// Export the model for use in other parts of the app
 module.exports = UserModel;
